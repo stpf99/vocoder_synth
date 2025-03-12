@@ -8,12 +8,10 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                             QHBoxLayout, QLabel, QSlider, QGroupBox, QTabWidget, QGridLayout, QComboBox, QPushButton)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QImage
-import logging
 
-logging.basicConfig(level=logging.DEBUG)
 
 # Parametry z ederwander
-Fs = 22000  # Sampling frequency
+Fs = 48000  # Sampling frequency
 num_bands = 33  # Number of bands
 f_low = 50  # Lowest frequency (Hz)
 f_high = 8000  # Highest frequency (Hz)
@@ -40,7 +38,7 @@ def generate_filter_coefficients(fs, freqs, bandwidth_factor=0.1):
 b, a = generate_filter_coefficients(Fs, frequencies, bandwidth_factor=0.1)
 
 class Vocoder:
-    def __init__(self, chunk_size=2048, sample_rate=22000):
+    def __init__(self, chunk_size=2048, sample_rate=48000):
         self.chunk_size = chunk_size
         self.sample_rate = sample_rate
         self.r = 0.99
@@ -54,7 +52,7 @@ class Vocoder:
 
     def set_gain(self, gain_db):
         self.dB = 10**(gain_db/20)
-        logging.debug(f"Vocoder gain set to {self.dB} ({gain_db} dB)")
+
 
     def carrier(self, s, f0):
         # Adapted from ederwander, pitch controlled by f0 (MIDI note frequency)
@@ -128,7 +126,7 @@ class MidiInputHandler:
                 self.callback("note_off", note, 0)
 
 class AudioHandler:
-    def __init__(self, callback=None, sample_rate=22000, chunk_size=2048):
+    def __init__(self, callback=None, sample_rate=48000, chunk_size=2048):
         self.callback = callback
         self.sample_rate = sample_rate
         self.chunk_size = chunk_size
@@ -308,9 +306,9 @@ class SpectrogramWidget(QWidget):
                 )
 
         font = pygame.font.SysFont('Arial', 10)
-        for i in range(0, 22000 // 2000):
+        for i in range(0, 48000 // 2000):
             freq = i * 2000
-            y_pos = height - (freq / (22000/2)) * height
+            y_pos = height - (freq / (48000/2)) * height
             text = font.render(f"{freq} Hz", True, (200, 200, 200))
             self.pygame_surface.blit(text, (5, y_pos))
 
@@ -467,7 +465,7 @@ class VocoderSynthApp(QMainWindow):
     def update_mix_ratio(self, value):
         self.mix_ratio = value / 100.0
         self.mix_label.setText(f"{value}%")
-        logging.debug(f"Mix ratio updated to {self.mix_ratio}")
+
 
     def connect_midi(self):
         port_index = self.midi_combo.currentIndex()
@@ -508,7 +506,7 @@ class VocoderSynthApp(QMainWindow):
         self.audio_connect_button.clicked.connect(self.start_audio)
 
     def handle_midi_message(self, message_type, note, velocity):
-        logging.debug(f"MIDI: {message_type}, Note: {note}, Velocity: {velocity}")
+
         if message_type == "note_on":
             self.active_notes[note] = velocity
             self.last_note = note
@@ -541,7 +539,7 @@ class VocoderSynthApp(QMainWindow):
         if output_max > 0:
             mixed_output = mixed_output * (0.9 / output_max)
         mixed_output = np.clip(mixed_output, -1, 1)
-        logging.debug(f"Mixed output max: {np.max(np.abs(mixed_output))}")
+
         return mixed_output.astype(np.float32)
 
     def update_visualizations(self):
